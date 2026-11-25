@@ -1,0 +1,15 @@
+{
+  "name": "Asistente Bono Alquiler Joven",
+  "short_name": "Bono Alquiler",
+  "description": "Sistema experto basado en reglas que indica si tienes derecho al Bono Alquiler Joven y explica por qué.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f5f7",
+  "theme_color": "#1f5f8b",
+  "lang": "es",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

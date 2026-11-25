@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bono Alquiler Joven · Asistente</title>
+  <meta name="theme-color" content="#1f5f8b">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    :root { --azul:#1f5f8b; --verde:#1d7a46; --rojo:#b3261e; --gris:#f3f5f7; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--gris); color:#1b1b1b; }
+    header { background:var(--azul); color:#fff; padding:16px; }
+    header h1 { margin:0; font-size:1.25rem; }
+    header p { margin:4px 0 0; font-size:.85rem; opacity:.9; }
+    main { max-width:640px; margin:0 auto; padding:16px; }
+    .card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+    h2 { font-size:1rem; margin:0 0 12px; color:var(--azul); }
+    label { display:block; font-size:.9rem; margin:10px 0 4px; }
+    input[type=number], select { width:100%; padding:10px; font-size:1rem; border:1px solid #c8ced4; border-radius:8px; }
+    .fila { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
+    .casos { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+    button { border:0; border-radius:8px; padding:10px 14px; font-size:.95rem; cursor:pointer; }
+    .caso { background:#e3edf5; color:var(--azul); }
+    .principal { background:var(--azul); color:#fff; width:100%; margin-top:16px; font-size:1.05rem; padding:12px; }
+    .resultado { font-size:1.15rem; font-weight:600; padding:12px; border-radius:8px; }
+    .si { background:#e3f4ea; color:var(--verde); }
+    .no { background:#fbe9e7; color:var(--rojo); }
+    ol.traza { padding-left:20px; font-size:.88rem; }
+    ol.traza li { margin-bottom:8px; }
+    .regla { font-family: ui-monospace, Consolas, monospace; font-size:.8rem; color:#555; display:block; }
+    .ok { color:var(--verde); } .ko { color:var(--rojo); }
+    footer { text-align:center; font-size:.75rem; color:#666; padding:8px 16px 24px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Asistente Bono Alquiler Joven</h1>
+    <p>Ayuntamiento de Villaverde (ficticio) · Sistema experto basado en reglas</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>1. Datos del solicitante (hechos)</h2>
+      <div class="casos">
+        <button class="caso" data-caso="lucia">Lucía</button>
+        <button class="caso" data-caso="marcos">Marcos</button>
+        <button class="caso" data-caso="ana">Ana</button>
+      </div>
+      <div class="fila">
+        <div><label for="edad">Edad (años)</label><input type="number" id="edad" min="0" value="27"></div>
+        <div><label for="meses">Empadronamiento (meses)</label><input type="number" id="meses" min="0" value="36"></div>
+        <div><label for="ingresos">Ingresos anuales (€)</label><input type="number" id="ingresos" min="0" value="18000"></div>
+        <div><label for="renta">Renta mensual (€)</label><input type="number" id="renta" min="0" value="620"></div>
+        <div><label for="contrato">Contrato a su nombre</label>
+          <select id="contrato"><option value="si">Sí</option><option value="no">No</option></select></div>
+        <div><label for="propietario">Propietario de vivienda</label>
+          <select id="propietario"><option value="no">No</option><option value="si">Sí</option></select></div>
+        <div><label for="hijos">Hijos a cargo</label><input type="number" id="hijos" min="0" value="0"></div>
+        <div><label for="discapacidad">Discapacidad (%)</label><input type="number" id="discapacidad" min="0" max="100" value="0"></div>
+      </div>
+      <button class="principal" id="evaluar">Comprobar si tengo derecho</button>
+    </section>
+
+    <section class="card" id="salida" hidden>
+      <h2>2. Resolución</h2>
+      <div id="resultado" class="resultado"></div>
+      <h2 style="margin-top:16px">3. ¿Por qué? Traza del razonamiento</h2>
+      <ol class="traza" id="traza"></ol>
+    </section>
+  </main>
+
+  <footer id="pie"></footer>
+
+  <script src="reglas.js"></script>
+  <script src="motor.js"></script>
+  <script>
+    // ===== INTERFAZ: recoge los hechos, llama al motor y muestra la explicación =====
+    const CASOS = {
+      lucia:  { edad:27, meses:36, ingresos:18000, renta:620, contrato:"si", propietario:"no", hijos:0, discapacidad:0 },
+      marcos: { edad:34, meses:8,  ingresos:21000, renta:650, contrato:"si", propietario:"no", hijos:0, discapacidad:0 },
+      ana:    { edad:31, meses:24, ingresos:22500, renta:680, contrato:"si", propietario:"no", hijos:1, discapacidad:0 }
+    };
+    const $ = id => document.getElementById(id);
+
+    document.querySelectorAll(".caso").forEach(b => b.onclick = () => {
+      const c = CASOS[b.dataset.caso];
+      for (const k in c) $(k).value = c[k];
+      evaluar();
+    });
+
+    function leerHechos() {
+      return {
+        edad: Number($("edad").value),
+        mesesEmpadronamiento: Number($("meses").value),
+        ingresos: Number($("ingresos").value),
+        renta: Number($("renta").value),
+        contrato: $("contrato").value === "si",
+        propietario: $("propietario").value === "si",
+        hijos: Number($("hijos").value),
+        discapacidad: Number($("discapacidad").value)
+      };
+    }
+
+    function evaluar() {
+      const r = inferir(leerHechos());
+      const res = $("resultado");
+      if (r.derecho) {
+        res.className = "resultado si";
+        res.textContent = `✔ Tienes derecho al bono: ${r.cuantia} €/mes`;
+      } else {
+        res.className = "resultado no";
+        res.textContent = "✘ Solicitud denegada. Motivo: " + r.incumplidos.map(t => t.motivo).join(" ");
+      }
+      $("traza").innerHTML = r.traza.map(t => `
+        <li><span class="${t.resultado ? "ok" : "ko"}">${t.regla} → ${t.conclusion}</span>
+        ${t.motivo ? " · " + t.motivo : ""}
+        <span class="regla">${t.texto}</span></li>`).join("");
+      $("salida").hidden = false;
+      $("salida").scrollIntoView({ behavior: "smooth" });
+    }
+
+    $("evaluar").onclick = evaluar;
+    $("pie").textContent = `Convocatoria ${PARAMETROS.convocatoria} · ${REGLAS.length} reglas · Caso práctico del curso IFCT155PO`;
+
+    // ===== Registro del service worker: permite instalarla y usarla sin conexión =====
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+  </script>
+</body>
+</html>
